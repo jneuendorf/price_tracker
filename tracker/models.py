@@ -1,6 +1,7 @@
 from datetime import timedelta
 import inspect
 import logging
+import traceback
 from urllib.parse import urlparse
 
 from django.db import models
@@ -59,7 +60,10 @@ class Page(models.Model):
         return (
             last_run is None
             or (
-                last_run + timedelta(**{self.interval_unit: self.interval})
+                (
+                    last_run.created_at
+                    + timedelta(**{self.interval_unit: self.interval})
+                )
                 <= timezone.now()
             )
         )
@@ -86,8 +90,8 @@ class Page(models.Model):
                         price=self.price_parser.get_price(node),
                     )
         except Exception as e:
-            import traceback
             logger.error(str(e))
+            logger.error(traceback.print_exc())
             print(e, traceback.print_exc())
 
         # TODO: log success

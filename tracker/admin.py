@@ -30,8 +30,13 @@ class PageAdmin(admin.ModelAdmin):
 
 @admin.register(RunResult)
 class RunResultAdmin(admin.ModelAdmin):
+    readonly_fields = ['page', 'created_at']
     inlines = [HtmlNodeInline]
 
 
-admin.site.register(HtmlNode)
+@admin.register(HtmlNode)
+class HtmlNodeAdmin(admin.ModelAdmin):
+    readonly_fields = ['run_result']
+
+
 admin.site.register(PriceParser)
