@@ -51,6 +51,7 @@ class Page(models.Model):
     )
 
     is_active = models.BooleanField(blank=True, default=False)
+    is_archived = models.BooleanField(blank=True, default=False)
 
     def get_last_run_result(self):
         return self.run_results.order_by('created_at').last()
@@ -98,6 +99,32 @@ class Page(models.Model):
         self.is_active = False
         self.save()
 
+    def price_has_dropped(self):
+        run_results = self.run_results.order_by('-created_at')
+        if len(run_results) == 0:
+            return False, (None, None)
+
+        if len(run_results) >= 2:
+            last, next_to_last = run_results[0:2]
+        else:
+            last = next_to_last = run_results[0]
+
+        # last, next_to_last = run_results[0:2]
+        prices_last = last.get_prices()
+        prices_next_to_last = next_to_last.get_prices()
+
+        if len(prices_last) == 1 and len(prices_next_to_last) == 1:
+            return (
+                prices_last[0] < prices_next_to_last[0],
+                (prices_next_to_last[0], prices_last[0])
+            )
+
+        raise ValueError(
+            'Could not determine if the price has dropped because price is '
+            f'not definite for either Page(id={last.id}) -> {prices_last} or '
+            f'Page(id={next_to_last.id}) -> {prices_next_to_last}'
+        )
+
     def get_readable_url(self):
         parsed_url = urlparse(self.url)
         return f'{parsed_url.netloc}/…/{parsed_url.path.split("/")[-1]}'
@@ -123,12 +150,14 @@ class RunResult(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def get_prices(self):
+        return [node.price for node in self.html_nodes.all()]
+
     def __str__(self):
-        prices = [node.price for node in self.html_nodes.all()]
         return (
             f'<RunResult '
             f'page="{self.page.get_readable_url()}" '
-            f'prices={str(prices)}>'
+            f'prices={str(self.get_prices())}>'
         )
 
 

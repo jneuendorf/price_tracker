@@ -30,7 +30,7 @@ class PageAdmin(admin.ModelAdmin):
 
 @admin.register(RunResult)
 class RunResultAdmin(admin.ModelAdmin):
-    readonly_fields = ['page', 'created_at']
+    readonly_fields = ['created_at']
     inlines = [HtmlNodeInline]
 
 
