@@ -1,6 +1,16 @@
 from django.contrib import admin
 
-from .models import PriceParser, Page, RunResult, HtmlNode
+from .models import (
+    HtmlNode,
+    Page,
+    PriceParser,
+    RunResult,
+)
+from .models.recipient import CallMeBotRecipient
+
+
+class CallMeBotRecipientInline(admin.TabularInline):
+    model = CallMeBotRecipient.pages.through
 
 
 class RunResultInline(admin.TabularInline):
@@ -13,9 +23,7 @@ class HtmlNodeInline(admin.TabularInline):
 
 @admin.register(Page)
 class PageAdmin(admin.ModelAdmin):
-    # list_display = []
-    # list_filter = []
-    inlines = [RunResultInline]
+    inlines = [CallMeBotRecipientInline, RunResultInline]
     readonly_fields = ['is_active']
     actions = ["run", "run_test"]
 
@@ -40,3 +48,4 @@ class HtmlNodeAdmin(admin.ModelAdmin):
 
 
 admin.site.register(PriceParser)
+admin.site.register(CallMeBotRecipient)

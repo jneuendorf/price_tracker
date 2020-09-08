@@ -1,6 +1,11 @@
+import logging
+
 from django.core.management.base import BaseCommand
 
 from tracker.models import Page
+
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -12,16 +17,27 @@ class Command(BaseCommand):
         for page in pages:
             page.run()
             try:
-                price_has_dropped, (old, new) = page.price_has_dropped()
+                previous, current = page.get_price_drop()
             except ValueError:
-                price_has_dropped = False
+                previous, current = -1, -1
 
+            price_has_dropped = current < previous
             if price_has_dropped:
-                print(
-                    f'Price drop detected for Page(id={page.id}) '
-                    f'from {old} to {new}'
-                )
-                pages_with_price_drop.append(page)
+                pages_with_price_drop.append((page, previous, current))
 
-        # notify about pages
-        # ...
+        for page, previous_price, current_price in pages_with_price_drop:
+            logger.info(
+                f'Price drop detected for \'{page.name}\' '
+                f'from {previous_price} to {current_price}'
+            )
+            for recipient in page.notification_recipients.all():
+                response = recipient.notify(
+                    page,
+                    previous_price,
+                    current_price,
+                )
+                logger.info(
+                    f'notified {recipient.first_name} {recipient.last_name} '
+                    f'({response.status_code})'
+                )
+            logger.info('\n')

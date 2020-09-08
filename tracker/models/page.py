@@ -1,5 +1,4 @@
 from datetime import timedelta
-import inspect
 import logging
 import traceback
 from urllib.parse import urlparse
@@ -8,31 +7,15 @@ from django.db import models
 from django.utils import timezone
 import requests
 
-from .util import soup, find_html_nodes, parse_price, extract_price
+from tracker.util import find_html_nodes
+from .price_parser import PriceParser
 
 
 logger = logging.getLogger(__name__)
 
 
-class PriceParser(models.Model):
-    name = models.CharField(max_length=20)
-    decimal_separator = models.CharField(max_length=1)
-    parse_func = models.TextField(default=inspect.getsource(parse_price))
-
-    def parse_price(self, x: str) -> float:
-        exec_locals = {}
-        exec(self.parse_func, globals(), exec_locals)
-        name, func = exec_locals.popitem()
-        return func(x, self.decimal_separator)
-
-    def get_price(self, node) -> float:
-        return self.parse_price(extract_price(node))
-
-    def __str__(self):
-        return self.name
-
-
 class Page(models.Model):
+    name = models.CharField(max_length=80)
     url = models.URLField(max_length=800, unique=True)
     css_selector = models.CharField(max_length=200)
     price_parser = models.ForeignKey(
@@ -71,7 +54,11 @@ class Page(models.Model):
 
     # TODO: with django.db.transaction.atomic() ?
     def run(self, force=False, test=False):
+        # TODO: Declutter cyclic dependency
+        from .run_result import RunResult
+
         if not force and (self.is_active or not self.needs_run()):
+            logger.info(f'skipping {self.name}')
             return
 
         self.is_active = True
@@ -82,7 +69,9 @@ class Page(models.Model):
             html_nodes = find_html_nodes(html, self.css_selector)
 
             if test:
-                print('found nodes', [str(node) for node in html_nodes])
+                logger.info(
+                    f'found nodes {"".join(str(node) for node in html_nodes)}'
+                )
             else:
                 run_result = RunResult.objects.create(page=self)
                 for node in html_nodes:
@@ -93,31 +82,26 @@ class Page(models.Model):
         except Exception as e:
             logger.error(str(e))
             logger.error(traceback.print_exc())
-            print(e, traceback.print_exc())
 
-        # TODO: log success
         self.is_active = False
         self.save()
+        logger.info(f'successfully ran {self.name}')
 
-    def price_has_dropped(self):
+    def get_price_drop(self):
         run_results = self.run_results.order_by('-created_at')
         if len(run_results) == 0:
-            return False, (None, None)
+            return (-1, -1)
 
         if len(run_results) >= 2:
             last, next_to_last = run_results[0:2]
         else:
             last = next_to_last = run_results[0]
 
-        # last, next_to_last = run_results[0:2]
         prices_last = last.get_prices()
         prices_next_to_last = next_to_last.get_prices()
 
         if len(prices_last) == 1 and len(prices_next_to_last) == 1:
-            return (
-                prices_last[0] < prices_next_to_last[0],
-                (prices_next_to_last[0], prices_last[0])
-            )
+            return (prices_next_to_last[0], prices_last[0])
 
         raise ValueError(
             'Could not determine if the price has dropped because price is '
@@ -140,37 +124,3 @@ class Page(models.Model):
             f'css_selector="{self.css_selector}" '
             f'interval="{self.interval}{short_units[self.interval_unit]}">'
         )
-
-
-class RunResult(models.Model):
-    page = models.ForeignKey(
-        Page,
-        related_name="run_results",
-        on_delete=models.CASCADE,
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def get_prices(self):
-        return [node.price for node in self.html_nodes.all()]
-
-    def __str__(self):
-        return (
-            f'<RunResult '
-            f'page="{self.page.get_readable_url()}" '
-            f'prices={str(self.get_prices())}>'
-        )
-
-
-class HtmlNode(models.Model):
-    run_result = models.ForeignKey(
-        RunResult,
-        related_name="html_nodes",
-        on_delete=models.CASCADE,
-    )
-    html = models.TextField()
-    price = models.FloatField(blank=True, null=True)
-
-    def __str__(self):
-        first_child = list(soup(self.html).select('body')[0].children)[0]
-        # print(soup(self.html).select('body').prettify())
-        return f'<HtmlNode tag="{first_child.name}" price={self.price}>'
