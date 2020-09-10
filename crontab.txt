@@ -1,1 +1,2 @@
+# Runs every minute. Check out https://crontab.guru/
 * * * * * cd $PROJECT && pipenv run python ./manage.py run
