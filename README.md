@@ -35,5 +35,12 @@ pipenv install
 - setup cron job
 - migrate
 - create super user
-- run server using `pipenv run gunicorn --workers=4 --bind=0.0.0.0:8000 --daemon core.wsgi`
+- add ALLOWED_HOSTS (`ALLOWED_HOSTS = ['*']`)
+- run server using `pipenv run gunicorn --workers=4 --bind=0.0.0.0:8000 --daemon --pid ./gunicorn.pid core.wsgi`
 - configure pages to track
+
+
+## Customize project
+
+- Create custom recipient model
+- `DEBUG = False`
