@@ -137,6 +137,11 @@ LOGGING = {
         },
     },
     'handlers': {
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'log.txt',
+            'formatter': 'verbose'
+        },
         'console': {
             'class': 'logging.StreamHandler',
             'level': 'INFO',
@@ -145,7 +150,7 @@ LOGGING = {
     },
     'loggers': {
         '': {
-            'handlers': ['console'],
+            'handlers': ['file', 'console'],
             'level': 'INFO',
             'propagate': True,
         },
