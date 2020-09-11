@@ -2,7 +2,7 @@ import logging
 
 from django.core.management.base import BaseCommand
 
-from tracker.models import Page
+from tracker.models import Page, UserAgent
 
 
 logger = logging.getLogger(__name__)
@@ -14,8 +14,11 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         pages = Page.objects.filter(is_archived=False)
         pages_with_price_drop = []
+        user_agents = UserAgent.objects.all()
+
         for page in pages:
-            page.run()
+            page.run(user_agents=user_agents)
+
             try:
                 previous, current = page.get_price_drop()
             except ValueError:

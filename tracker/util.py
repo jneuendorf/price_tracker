@@ -1,3 +1,5 @@
+from random import randint
+
 from bs4 import BeautifulSoup
 
 
@@ -26,3 +28,18 @@ def parse_price(x: str, decimal_separator: str) -> float:
     }
     trimmed = ''.join(c for c in x if c in valid_chars)
     return float(trimmed.replace(decimal_separator, '.'))
+
+
+def random_referer():
+    popular_domains = (
+        'https://www.google.com',
+        'https://www.google.com/maps',
+        'https://www.youtube.com/',
+        'https://www.facebook.com/',
+        'https://www.netflix.com/browse',
+        'https://stackoverflow.com/',
+        'https://www.ebay.com/',
+    )
+    count = len(popular_domains)
+    random_index = randint(0, count - 1)
+    return popular_domains[random_index]

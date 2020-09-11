@@ -7,8 +7,9 @@ from django.db import models
 from django.utils import timezone
 import requests
 
-from tracker.util import find_html_nodes
+from tracker.util import find_html_nodes, random_referer
 from .price_parser import PriceParser
+from .user_agent import UserAgent
 
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ class Page(models.Model):
         )
 
     # TODO: with django.db.transaction.atomic() ?
-    def run(self, force=False, test=False):
+    def run(self, user_agents=None, force=False, test=False):
         # TODO: Declutter cyclic dependency
         from .run_result import RunResult
 
@@ -64,7 +65,26 @@ class Page(models.Model):
         self.is_active = True
         self.save()
         try:
-            response = requests.get(self.url)
+            response = requests.get(
+                self.url,
+                headers={
+                    'Accept': (
+                        'text/html,application/xhtml+xml,application/xml;'
+                        'q=0.9,image/avif,image/webp,image/apng,*/*;'
+                        'q=0.8,application/signed-exchange;v=b3;q=0.9'
+                    ),
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
+                    'Cache-Control': 'max-age=0',
+                    'Referer': random_referer(),
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'none',
+                    'Upgrade-Insecure-Requests': '1',
+                    'User-Agent': UserAgent.random(queryset=user_agents),
+                    # 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36',
+                },
+            )
             html = response.text
             html_nodes = find_html_nodes(html, self.css_selector)
 

@@ -2,7 +2,6 @@
 name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
-
 # [dev-packages]
 # python-language-server = {extras = ["all"], version = "*"}
 
@@ -13,6 +12,7 @@ Django = "~=3.1"
 requests = "*"
 lxml = "*"
 gunicorn = "*"
+fake-useragent = "*"
 
 [requires]
 python_version = "3.8"

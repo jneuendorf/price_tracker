@@ -5,6 +5,7 @@ from .models import (
     Page,
     PriceParser,
     RunResult,
+    UserAgent,
 )
 from .models.recipient import CallMeBotRecipient
 
@@ -49,3 +50,4 @@ class HtmlNodeAdmin(admin.ModelAdmin):
 
 admin.site.register(PriceParser)
 admin.site.register(CallMeBotRecipient)
+admin.site.register(UserAgent)

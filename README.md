@@ -37,6 +37,7 @@ pipenv install
 - create super user
 - add ALLOWED_HOSTS (`ALLOWED_HOSTS = ['*']`)
 - run server using `pipenv run gunicorn --workers=4 --bind=0.0.0.0:8000 --daemon --pid ./gunicorn.pid core.wsgi`
+- add price parsers
 - configure pages to track
 
 
